@@ -9,7 +9,7 @@ from palmetto_data import df_from_address, calculate_costs, generate_heater_para
 class ConsumptionRecord(BaseModel):
     from_datetime: datetime
     to_datetime: datetime
-    variable: str
+    variable: Literal['consumption.electricity', 'consumption.fossil_fuel']
     value: float
     class Config:
         json_encoders = {
