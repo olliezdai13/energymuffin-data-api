@@ -21,6 +21,11 @@ def get_ei_response(payload):
     }
     safe_payload = jsonable_encoder(payload)
     response = requests.post(url, json=safe_payload, headers=headers)
+    
+    # Check if the request was successful
+    if response.status_code != 200:
+        raise ValueError(f"Palmetto API request failed with status {response.status_code}: {response.text}")
+        
     return response.text
 
 def get_customer_payload(address: str, start_time: str, end_time: str, granularity: str, usage_dict: dict, baseline_params: dict):
@@ -97,11 +102,25 @@ def generate_cooling_params(start_time: int, duration: int, setpoint: int):
     }
 
 def parse_to_df(json_string, attribute_list=[]):
-    parsed = json.loads(json_string)
-    df = pd.DataFrame.from_records(parsed['data']['intervals'])
-    df['from_datetime'] = pd.to_datetime(df['from_datetime'])
-    df['to_datetime'] = pd.to_datetime(df['to_datetime'])
-    return df.pivot(index='from_datetime', columns='variable', values='value')
+    try:
+        parsed = json.loads(json_string)
+        
+        # Check if the response contains an error
+        if 'error' in parsed:
+            raise ValueError(f"Palmetto API Error: {parsed['error']}")
+            
+        # Check if the response has the expected structure
+        if 'data' not in parsed or 'intervals' not in parsed['data']:
+            raise ValueError(f"Unexpected API response structure: {json_string}")
+            
+        df = pd.DataFrame.from_records(parsed['data']['intervals'])
+        df['from_datetime'] = pd.to_datetime(df['from_datetime'])
+        df['to_datetime'] = pd.to_datetime(df['to_datetime'])
+        return df.pivot(index='from_datetime', columns='variable', values='value')
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Failed to parse API response: {e}\nResponse: {json_string}")
+    except Exception as e:
+        raise ValueError(f"Error processing API response: {e}\nResponse: {json_string}")
 
 def df_from_address(address, start_time, end_time, granularity, known_usage_dict=None, baseline_params=None):
     payload = get_customer_payload(address, start_time, end_time, granularity, known_usage_dict, baseline_params)
