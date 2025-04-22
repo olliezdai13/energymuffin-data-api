@@ -11,6 +11,7 @@ dependencies = [
     "requests>=2.32.3",
     "uvicorn>=0.34.2",
     "pydantic>=2.0.0",
+    "gunicorn>=21.2.0",
 ]
 
 [build-system]
@@ -19,3 +20,6 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/energymuffin_data_api"]
+
+[project.scripts]
+start = "energymuffin_data_api:main"
